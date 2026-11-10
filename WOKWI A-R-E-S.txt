@@ -1,0 +1,91 @@
+///"SENSORES ULTRASONIDO CON CONTROL DE BOMBILLO Y MOTORES"
+#define TRIG_1 5 // definición en memoria
+#define ECHO_1 18
+#define TRIG_2 19
+#define ECHO_2 21
+#define TRIG_3 22
+#define ECHO_3 23
+#define TRIG_4 25
+#define ECHO_4 26
+
+#define BOMBILLO 27 // Pin para el LED/Bombillo de alerta
+#define MOTOR_1  12 // Pin para el primer motor
+#define MOTOR_2  14 // Pin para el segundo motor
+
+//--------- Configuración de la esp32 ------
+void setup() {
+  Serial.begin(9600);
+  
+  pinMode(TRIG_1, OUTPUT);
+  pinMode(ECHO_1, INPUT);
+  pinMode(TRIG_2, OUTPUT);
+  pinMode(ECHO_2, INPUT);
+  pinMode(TRIG_3, OUTPUT);
+  pinMode(ECHO_3, INPUT);
+  pinMode(TRIG_4, OUTPUT);
+  pinMode(ECHO_4, INPUT);
+
+  // Configuración del bombillo y motores como salidas
+  pinMode(BOMBILLO, OUTPUT); 
+  pinMode(MOTOR_1, OUTPUT);
+  pinMode(MOTOR_2, OUTPUT);
+}
+
+void loop() {
+  // Lectura de cada uno de los sensores
+  int s1 = medir_distancia(TRIG_1, ECHO_1);
+  int s2 = medir_distancia(TRIG_2, ECHO_2);
+  int s3 = medir_distancia(TRIG_3, ECHO_3);
+  int s4 = medir_distancia(TRIG_4, ECHO_4);
+
+  // Impresión de resultados 
+  imprimir_lecturas(s1, s2, s3, s4);
+
+  // Verificación para apagar motores y encender bombillo si hay algo a menos de 10 cm
+  evaluar_alerta(s1, s2, s3, s4);
+
+  delay(200); 
+}
+
+//--------- Función para medir la distancia en cm ------
+int medir_distancia(int trig, int echo) {
+  digitalWrite(trig, LOW); // Limpiamos el pin trig
+  delay(2);
+  digitalWrite(trig, HIGH); // Generamos el pulso
+  delay(10);
+  digitalWrite(trig, LOW);
+
+  long duracion = pulseIn(echo, HIGH, 30000); // Medimos el tiempo del eco
+  if (duracion == 0) return -1; // Retorna -1 si está fuera de rango
+
+  int distancia = duracion * 0.0343 / 2; // Cálculo de la distancia en cm
+  return distancia;
+}
+
+//--------- Función para imprimir lecturas ------
+void imprimir_lecturas(int d1, int d2, int d3, int d4) {
+  Serial.print("Sensor 1: ");
+  Serial.print(d1);
+  Serial.print(" cm | Sensor 2: ");
+  Serial.print(d2);
+  Serial.print(" cm | Sensor 3: ");
+  Serial.print(d3);
+  Serial.print(" cm | Sensor 4: ");
+  Serial.print(d4);
+  Serial.println(" cm");
+}
+
+//--------- Función para controlar el bombillo y motores ------
+void evaluar_alerta(int d1, int d2, int d3, int d4) {
+  // Si alguno detecta un objeto a menos de 10 cm
+  if ((d1 > 0 && d1 < 10) || (d2 > 0 && d2 < 10) || (d3 > 0 && d3 < 10) || (d4 > 0 && d4 < 10)) {
+    digitalWrite(BOMBILLO, HIGH); // Encendemos el bombillo de alerta
+    digitalWrite(MOTOR_1, LOW);   // Apagamos el motor 1
+    digitalWrite(MOTOR_2, LOW);   // Apagamos el motor 2
+    Serial.println("¡ALERTA! Objeto a menos de 10 cm. MOTORES DETENIDOS.");
+  } else {
+    digitalWrite(BOMBILLO, LOW);  // Apagamos el bombillo
+    digitalWrite(MOTOR_1, HIGH);  // Motores encendidos en estado normal
+    digitalWrite(MOTOR_2, HIGH); 
+  }
+}
